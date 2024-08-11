@@ -10,15 +10,14 @@ import numpy as np
 import time
 import tkinter as tk
 from tkinter import ttk
-
 import sv_ttk
+
 def color_selection():
     root = tk.Tk()
     root.title("Color Selection")
     root.geometry("1200x500")
 
-    # Add welcome message
-    welcome_label = tk.Label(root, text="Hi! I'm Muhammad Saim Sajid, the creator of this cloak. It's inspired by one of the Deathly Hallows, as the Greatest Wizard in history. This cloak is a gift from me to you.  Would you like to choose the color?")
+    welcome_label = tk.Label(root, text="Hi! I'm Muhammad Saim Sajid, the creator of this cloak. It's inspired by one of the Deathly Hallows, as the Greatest Wizard in history. This cloak is a gift from me to you. Would you like to choose the color?")
     welcome_label.pack()
 
     def start_video():
@@ -40,41 +39,50 @@ def color_selection():
     start_button.pack()
 
     root.mainloop()
+    return color
 
-color_selection()
+def get_background(video, frames=60):
+    time.sleep(3)
+    for i in range(frames):
+        check, background = video.read()
+    return np.flip(background, axis=1)
 
-video = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-time.sleep(3)
-for i in range(60):
-    check, background = video.read()
-background = np.flip(background, axis=1)
+def apply_invisibility_cloak(video, background, color):
+    while(video.isOpened()):
+        check, img = video.read()
+        if not check:
+            break
+        img = np.flip(img, axis=1)
 
-while(video.isOpened()):
-    check, img = video.read()
-    if check == False:
-        break
-    img = np.flip(img, axis=1)
+        if color == "red":
+            lower_color = np.array([0, 50, 50])
+            upper_color = np.array([10, 255, 255])
+        elif color == "blue":
+            lower_color = np.array([100, 50, 50])
+            upper_color = np.array([140, 255, 255])
 
-    if color == "red":
-        lower_color = np.array([0, 50, 50])
-        upper_color = np.array([10, 255, 255])
-    elif color == "blue":
-        lower_color = np.array([100, 50, 50])
-        upper_color = np.array([140, 255, 255])
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv, lower_color, upper_color)
 
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, lower_color, upper_color)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, np.ones((3, 3), np.uint8))
+        mask2 = cv2.bitwise_not(mask)
+        res1 = cv2.bitwise_and(img, img, mask=mask2)
+        res2 = cv2.bitwise_and(background, background, mask=mask)
+        final = cv2.addWeighted(res1, 1, res2, 1, 0)
+        cv2.imshow("final", final)
+        key = cv2.waitKey(1)
+        if key == ord('c'):
+            break
 
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, np.ones((3, 3), np.uint8))
-    mask2 = cv2.bitwise_not(mask)
-    res1 = cv2.bitwise_and(img, img, mask=mask2)
-    res2 = cv2.bitwise_and(background, background, mask=mask)
-    final = cv2.addWeighted(res1, 1, res2, 1, 0)
-    cv2.imshow("final", final)
-    key = cv2.waitKey(1)
-    if key == ord('c'):
-        break
+    video.release()
+    cv2.destroyAllWindows()
 
-video.release()
-cv2.destroyAllWindows()
+def main():
+    color = color_selection()
+    video = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    background = get_background(video)
+    apply_invisibility_cloak(video, background, color)
+
+if __name__ == "__main__":
+    main()
